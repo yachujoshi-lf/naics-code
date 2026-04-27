@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { NaicsCodeModule } from './naics-code/naics-code.module';
 
 @Module({
   imports: [
@@ -17,10 +18,12 @@ import { AppService } from './app.service';
         password: config.get<string>('POSTGRES_PASSWORD', 'postgres'),
         database: config.get<string>('POSTGRES_DB', 'naics'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: config.get<string>('NODE_ENV') !== 'production',
+        migrations: [__dirname + '/migrations/*{.ts,.js}'],
+        synchronize: false,
         logging: config.get<string>('NODE_ENV') === 'development',
       }),
     }),
+    NaicsCodeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
