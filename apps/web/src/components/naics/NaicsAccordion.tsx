@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { getChildren, getSectors } from '@/services/naics';
+import { cn } from '@/lib/utils';
 import type { NaicsCode, NaicsLevel } from '@/types/naics';
 import { NAICS_LEVEL_LABEL } from '@/types/naics';
-import { cn } from '@/lib/utils';
 
 const LEVEL_COLORS: Record<NaicsLevel, string> = {
   SECTOR:            'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
@@ -21,26 +22,14 @@ interface NaicsNodeProps {
 
 function NaicsNode({ node, depth }: NaicsNodeProps) {
   const [open, setOpen] = useState(false);
-  const [children, setChildren] = useState<NaicsCode[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const isLeaf = node.level === 'NATIONAL_INDUSTRY';
 
-  async function handleOpenChange(next: boolean) {
-    setOpen(next);
-    if (next && children === null) {
-      setLoading(true);
-      setError(null);
-      try {
-        setChildren(await getChildren(node.id));
-      } catch {
-        setError('Failed to load. Try again.');
-      } finally {
-        setLoading(false);
-      }
-    }
-  }
+  const { data: children, isFetching, isError } = useQuery({
+    queryKey: ['naics-children', node.id],
+    queryFn: () => getChildren(node.id),
+    enabled: open && !isLeaf,
+    staleTime: Infinity,
+  });
 
   const trigger = (
     <div className={cn(
@@ -72,12 +61,10 @@ function NaicsNode({ node, depth }: NaicsNodeProps) {
     </div>
   );
 
-  if (isLeaf) {
-    return <div>{trigger}</div>;
-  }
+  if (isLeaf) return <div>{trigger}</div>;
 
   return (
-    <Collapsible open={open} onOpenChange={handleOpenChange}>
+    <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger asChild>
         <button className="w-full">{trigger}</button>
       </CollapsibleTrigger>
@@ -87,19 +74,19 @@ function NaicsNode({ node, depth }: NaicsNodeProps) {
           'ml-6 mt-0.5 mb-0.5 space-y-0.5',
           depth < 4 && 'border-l border-border/60 pl-2',
         )}>
-          {loading && (
+          {isFetching && (
             <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Loading…
             </div>
           )}
-          {error && (
-            <div className="px-3 py-2 text-sm text-destructive">{error}</div>
+          {isError && (
+            <div className="px-3 py-2 text-sm text-destructive">Failed to load. Try again.</div>
           )}
           {children?.map((child) => (
             <NaicsNode key={child.id} node={child} depth={depth + 1} />
           ))}
-          {!loading && !error && children?.length === 0 && (
+          {!isFetching && !isError && children?.length === 0 && (
             <div className="px-3 py-2 text-sm text-muted-foreground italic">No entries.</div>
           )}
         </div>
@@ -113,18 +100,12 @@ interface NaicsAccordionProps {
 }
 
 export function NaicsAccordion({ versionYear = 2022 }: NaicsAccordionProps) {
-  const [sectors, setSectors] = useState<NaicsCode[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: sectors, isLoading, isError } = useQuery({
+    queryKey: ['naics-sectors', versionYear],
+    queryFn: () => getSectors(versionYear),
+  });
 
-  useEffect(() => {
-    getSectors(versionYear)
-      .then(setSectors)
-      .catch(() => setError('Failed to load sectors.'))
-      .finally(() => setLoading(false));
-  }, [versionYear]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16 gap-2 text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
@@ -133,8 +114,8 @@ export function NaicsAccordion({ versionYear = 2022 }: NaicsAccordionProps) {
     );
   }
 
-  if (error) {
-    return <div className="py-8 text-center text-sm text-destructive">{error}</div>;
+  if (isError) {
+    return <div className="py-8 text-center text-sm text-destructive">Failed to load sectors.</div>;
   }
 
   if (!sectors?.length) {
