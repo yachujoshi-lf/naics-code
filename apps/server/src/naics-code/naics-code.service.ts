@@ -29,6 +29,14 @@ export class NaicsCodeService {
     if (query.code !== undefined)
       qb.andWhere('n.code = :code', { code: query.code });
 
+    if (query.search !== undefined) {
+      qb.andWhere('(LOWER(n.title) LIKE :titleSearch OR n.code LIKE :codeSearch)', {
+        titleSearch: `%${query.search.toLowerCase()}%`,
+        codeSearch: `${query.search}%`,
+      });
+      qb.take(50);
+    }
+
     return qb.orderBy('n.code', 'ASC').getMany();
   }
 

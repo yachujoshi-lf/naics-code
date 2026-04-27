@@ -39,4 +39,8 @@ export class QueryNaicsCodeDto {
   @IsString()
   @IsOptional()
   code?: string;
+
+  @IsString()
+  @IsOptional()
+  search?: string;
 }
