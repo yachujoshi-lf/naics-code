@@ -28,10 +28,18 @@ export class CreateNaicsCodes1745712000000 implements MigrationInterface {
       )
     `);
 
-    await queryRunner.query(`CREATE INDEX idx_naics_parent_id    ON naics_codes (parent_id)`);
-    await queryRunner.query(`CREATE INDEX idx_naics_level        ON naics_codes (level)`);
-    await queryRunner.query(`CREATE INDEX idx_naics_version_year ON naics_codes (version_year)`);
-    await queryRunner.query(`CREATE INDEX idx_naics_is_active    ON naics_codes (is_active)`);
+    await queryRunner.query(
+      `CREATE INDEX idx_naics_parent_id    ON naics_codes (parent_id)`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX idx_naics_level        ON naics_codes (level)`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX idx_naics_version_year ON naics_codes (version_year)`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX idx_naics_is_active    ON naics_codes (is_active)`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
